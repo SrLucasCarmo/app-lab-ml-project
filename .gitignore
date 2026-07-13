@@ -1,0 +1,70 @@
+# Dependencies
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.kaggle/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# Data - Original raw files (too large for Git)
+Dados/train_*.csv
+Dados/test_*.csv
+
+# Data - Generated files (too large for Git, regenerate via pipeline)
+Dados/raw_data.csv
+Dados/clean_data.csv
+Dados/abt.csv
+Dados/database/*.csv
+Dados/database/.complete
+
+# Model artifacts
+*.pkl
+Model/fraud_model.pkl
+Model/scaler.pkl
+Model/threshold.json
+
+# Deep learning artifacts
+deep_learning/*.keras
+deep_learning/*.pkl
+deep_learning/*_metrics*.json
+
+# MLOps
+MLOps/airflow/
+MLOps/logs/
+MLOps/.env
+MLOps/dags/fraud_inference_only.py
+MLOps/dags/fraud_streaming_pipeline.py
+
+# App
+app/__pycache__/
+app/*.log
+app/main_copy.py
+app/main1.py
+
+# Jupyter outputs
+*.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+
+#Demais
+teste.ipynb
+estrutura_projeto.md
+streaming_pipeline/data
+streaming_pipeline/__init__.py
+streaming_pipeline/README.md
+streaming_pipeline/streaming_pipeline.py
+streaming_pipeline/streamlit_streaming.py

@@ -1,0 +1,225 @@
+{
+  "model_config": {
+    "model": {
+      "algorithm": "LightGBM",
+      "library": "lightgbm",
+      "version": "4.6.0",
+      "task": "binary_classification"
+    },
+    "bucket": {
+      "refined": [
+        "refined",
+        "/ieee-fraud-detection/"
+      ]
+    },
+    "hyperparameters": {
+      "n_estimators": 200,
+      "max_depth": 6,
+      "learning_rate": 0.1,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "scale_pos_weight": 28.8,
+      "random_state": 42,
+      "n_jobs": -1,
+      "eval_metric": "auc",
+      "tree_method": "hist"
+    },
+    "training": {
+      "target_column": "isFraud",
+      "test_size": 0.2,
+      "random_state": 42,
+      "stratify": true,
+      "early_stopping_rounds": 10,
+      "validation_split": 0.3,
+      "cv_folds": 2
+    },
+    "evaluation": {
+      "metrics": [
+        "roc_auc",
+        "precision",
+        "recall",
+        "f1",
+        "precision_recall_auc",
+        "confusion_matrix"
+      ],
+      "threshold_optimization": "f1"
+    },
+    "metadata": {
+      "created_at": "2026-06-27",
+      "project": "Fraud Detection - IEEE-CIS",
+      "institution": "FIA Business School - LABDATA",
+      "version": "1.0.0"
+    }
+  },
+  "selected_model": "XGBoost",
+  "best_params": {},
+  "test_metrics": {
+    "roc_auc": 0.9185673370049018,
+    "precision": 0.6291079812206573,
+    "recall": 0.5929203539823009,
+    "f1": 0.6104783599088839,
+    "fbeta_2": 0.5998209489704566,
+    "pr_auc": 0.658276666217551,
+    "confusion_matrix": [
+      [
+        7695,
+        79
+      ],
+      [
+        92,
+        134
+      ]
+    ],
+    "tn": 7695,
+    "fp": 79,
+    "fn": 92,
+    "tp": 134,
+    "feature_importance_top20": [
+      {
+        "feature": "V69",
+        "importance": 0.04370873421430588
+      },
+      {
+        "feature": "M4_missing",
+        "importance": 0.04141063988208771
+      },
+      {
+        "feature": "card6_encoded",
+        "importance": 0.027168016880750656
+      },
+      {
+        "feature": "V_top20_sum",
+        "importance": 0.020959243178367615
+      },
+      {
+        "feature": "V70",
+        "importance": 0.01954696886241436
+      },
+      {
+        "feature": "V_top20_mean",
+        "importance": 0.019472874701023102
+      },
+      {
+        "feature": "card3",
+        "importance": 0.016013242304325104
+      },
+      {
+        "feature": "M4",
+        "importance": 0.015950651839375496
+      },
+      {
+        "feature": "card6",
+        "importance": 0.012007727287709713
+      },
+      {
+        "feature": "V257",
+        "importance": 0.011683288961648941
+      },
+      {
+        "feature": "V322",
+        "importance": 0.010118778795003891
+      },
+      {
+        "feature": "V258",
+        "importance": 0.009323199279606342
+      },
+      {
+        "feature": "V331",
+        "importance": 0.008642122149467468
+      },
+      {
+        "feature": "V198",
+        "importance": 0.008519604802131653
+      },
+      {
+        "feature": "V267",
+        "importance": 0.00816409196704626
+      },
+      {
+        "feature": "V206",
+        "importance": 0.008159524761140347
+      },
+      {
+        "feature": "V91",
+        "importance": 0.008142820559442043
+      },
+      {
+        "feature": "V243",
+        "importance": 0.008047349750995636
+      },
+      {
+        "feature": "V332",
+        "importance": 0.00791451521217823
+      },
+      {
+        "feature": "V100",
+        "importance": 0.007835463620722294
+      }
+    ]
+  },
+  "cross_validation": {
+    "roc_auc": {
+      "scores": [
+        0.9077752770406521,
+        0.9029101429543906
+      ],
+      "mean": 0.9053427099975213,
+      "std": 0.002432567043130718,
+      "min": 0.9029101429543906,
+      "max": 0.9077752770406521
+    },
+    "f1": {
+      "scores": [
+        0.6284289276807979,
+        0.654040404040404
+      ],
+      "mean": 0.641234665860601,
+      "std": 0.012805738179803017,
+      "min": 0.6284289276807979,
+      "max": 0.654040404040404
+    },
+    "precision": {
+      "scores": [
+        0.717948717948718,
+        0.7617647058823529
+      ],
+      "mean": 0.7398567119155355,
+      "std": 0.021907993966817474,
+      "min": 0.717948717948718,
+      "max": 0.7617647058823529
+    },
+    "recall": {
+      "scores": [
+        0.5587583148558758,
+        0.5730088495575221
+      ],
+      "mean": 0.565883582206699,
+      "std": 0.007125267350823139,
+      "min": 0.5587583148558758,
+      "max": 0.5730088495575221
+    },
+    "predictions": {
+      "roc_auc": 0.9051868423994353,
+      "precision": 0.7395079594790159,
+      "recall": 0.5658914728682171,
+      "f1": 0.6411543287327478,
+      "fbeta_2": 0.5937717871252615,
+      "pr_auc": 0.6533121813959386
+    }
+  },
+  "overfitting_analysis": {
+    "roc_auc_gap": -0.013224627007380474,
+    "cv_roc_auc_mean": 0.9053427099975213,
+    "test_roc_auc": 0.9185673370049018,
+    "f1_gap": 0.030756305951717078,
+    "cv_f1_mean": 0.641234665860601,
+    "test_f1": 0.6104783599088839,
+    "fbeta_2_gap": -0.006049161845195106,
+    "cv_fbeta_2_mean": 0.5937717871252615,
+    "test_fbeta_2": 0.5998209489704566,
+    "overfitting_detected": true,
+    "warnings": [
+      "F1 gap > 0.03 (0.0308) - possível overfitting"
+    ]
+  }
+}

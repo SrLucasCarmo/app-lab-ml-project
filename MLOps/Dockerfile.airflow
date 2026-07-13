@@ -1,0 +1,30 @@
+# Dockerfile customizado para Airflow com dependências ML
+FROM apache/airflow:2.8.0-python3.11
+
+USER root
+
+# Instalar dependências de build para xgboost/lightgbm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    cmake \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+USER airflow
+
+# Instalar dependências ML necessárias para carregar o modelo XGBoost/LightGBM
+RUN pip install --no-cache-dir \
+    xgboost==2.0.3 \
+    lightgbm==4.3.0 \
+    scikit-learn==1.3.2 \
+    pandas==2.1.4 \
+    numpy==1.26.2 \
+    minio==7.2.0 \
+    plotly==5.18.0 \
+    streamlit==1.29.0
+
+# Copiar requirements do streaming_pipeline se houver
+COPY --chown=airflow:root streaming_pipeline/requirements.txt /tmp/streaming_requirements.txt
+RUN pip install --no-cache-dir -r /tmp/streaming_requirements.txt || true
