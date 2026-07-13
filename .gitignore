@@ -11,7 +11,7 @@ __pycache__/
 .vscode/
 *.swp
 *.swo
-.gitigore
+.gitignore
 
 # Data - Original raw files (too large for Git)
 Dados/train_*.csv
