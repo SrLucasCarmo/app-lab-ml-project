@@ -196,7 +196,7 @@ Concentra arquivos de subida do ambiente Streamlit e requisitos de bibliotecas n
 git clone <url-do-seu-repositorio>
 ```
 ### 2. Credenciais da Kaggle
-Para funcionamento do projeto é necessário configurar variavel de ambiente com as credenciais da API TOKEN do Kaggle (para acesso as bases do modelo)
+Para funcionamento do projeto é necessário configurar variavel de ambiente com as credenciais da API TOKEN do Kaggle (para mais informações de como gerar a API TOKEN basta ir na documentação do Kaggle [Link](https://www.kaggle.com/settings/api))
 Abra o Prompt de Comando (cmd) ou PowerShell na raiz do projeto , execute o comando abaixo.
 ```bash
 echo KAGGLE_API_TOKEN="SUA_API_KEY" > MLOps\.env
