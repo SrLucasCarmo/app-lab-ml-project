@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-ingestion_data.py — Extrai dados do Keggle e salva na camada raw do minio.
+ingestion_data.py — Extrai dados do Keggle e salva na camada raw do minio em ambiente docker ou salva arquivos localmente em ambiente local.
 Uso:
     python DataPipeline/ingestion_data.py
 """
@@ -34,12 +34,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Carregamento de configuração
 # ---------------------------------------------------------------------------
-CONFIG_PATH = Path(__file__).with_name("pipeline_config.json")
+AMBIENTE_ATUAL = os.getenv('AMBIENTE', 'local')
 
+CONFIG_PATH = Path(__file__).with_name("pipeline_config.json")
 with CONFIG_PATH.open("r", encoding="utf-8") as fh:
     CFG = json.load(fh)
 
-PATHS = CFG["paths"]
+PATHS = CFG["paths"][AMBIENTE_ATUAL]
 BUCKET = CFG["bucket"]
 FILES = CFG["files"]
 CLEAN_CFG = CFG["cleaning"]
@@ -77,7 +78,6 @@ def download_database():
         sys.exit(1)
 
 
-
 def import_minio():
     """Carrega arquivos baixados para o Minio"""  
     for file in FILES:
@@ -98,16 +98,20 @@ if __name__ == "__main__":
     logger.info("=" * 60)
     logger.info("DATA INGESTION - IEEE-CIS Fraud Detection")
     logger.info("=" * 60)
-    parser = argparse.ArgumentParser(description='Executa métodos da Ingestão')
-    parser.add_argument('--acao', type=str, required=True, choices=['logar','baixar', 'salvar'], 
-                        help='Qual método você deseja executar?')
-    args = parser.parse_args()
-    if args.acao == 'logar':
-        logger.info("Realizando Validação de credenciais de acesso Kaggle")
+    if AMBIENTE_ATUAL == 'docker':
+        parser = argparse.ArgumentParser(description='Executa métodos da Ingestão')
+        parser.add_argument('--acao', type=str, required=True, choices=['logar','baixar', 'salvar'], 
+                            help='Qual método você deseja executar?')
+        args = parser.parse_args()
+        if args.acao == 'logar':
+            logger.info("Realizando Validação de credenciais de acesso Kaggle")
+            credenciais()
+        elif args.acao == 'baixar':
+            logger.info("Realizando Download das tabelas do kaggle")
+            download_database()
+        elif args.acao == 'salvar':
+            logger.info("Realizando Importação das tabelas para o Minio")
+            import_minio()
+    else:
         credenciais()
-    elif args.acao == 'baixar':
-        logger.info("Realizando Download das tabelas do kaggle")
         download_database()
-    elif args.acao == 'salvar':
-        logger.info("Realizando Importação das tabelas para o Minio")
-        import_minio()

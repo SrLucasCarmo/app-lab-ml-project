@@ -1,4 +1,10 @@
 {
+  "pipeline": {
+    "config": {
+      "path": "DataPipeline/",
+      "file": "pipeline_config.json"
+    }
+  },
   "model": {
     "algorithm": "LightGBM",
     "library": "lightgbm",
@@ -7,6 +13,14 @@
   },
   "bucket": {
     "refined": ["refined","/ieee-fraud-detection/"]
+  },
+  "output": {
+    "model": "fraud_model.pkl",
+    "metrics":"training_metrics.json",
+    "scaler":"scaler.pkl",
+    "scaler_report":"scaler_features.json",
+    "threshold": "threshold.json",
+    "optuna": "optuna_study.pkl"
   },
   "hyperparameters": {
     "n_estimators": 200,

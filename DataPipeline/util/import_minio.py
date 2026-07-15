@@ -3,6 +3,8 @@ import io
 from minio import Minio
 from minio.error import S3Error
 import pandas as pd
+from pathlib import Path
+import json
 
 class MinioImport():
     def __init__(self,bucket,caminho_arquivo,arquivo_minio,type):
@@ -44,7 +46,11 @@ class MinioImport():
         except FileNotFoundError:
             print("Erro: O arquivo CSV não foi encontrado no caminho especificado.")
 
-    def ler_csv_minio(self, chuck_size):
+    def ler_csv_minio(self):
+        CONFIG_PATH = Path(__file__).parent.with_name("pipeline_config.json")
+        with CONFIG_PATH.open("r", encoding="utf-8") as fh:
+            CFG = json.load(fh)
+        LIMITATION = CFG["limitation"]
         endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
         if endpoint.startswith("http://"):
             endpoint = endpoint.replace("http://", "")
@@ -57,11 +63,11 @@ class MinioImport():
 
         try:
             resposta = client.get_object(self.bucket, self.arquivo_minio)
-            iterador_csv = pd.read_csv(resposta, chunksize=chuck_size)        
+            iterador_csv = pd.read_csv(resposta, chunksize=LIMITATION["chunk_size"])        
             lista_de_lotes = []    
             contador = 0 
             for chunk in iterador_csv:
-                if(contador <= 3):
+                if(contador <= LIMITATION["chunk_count"]):
                     lista_de_lotes.append(chunk)
                     contador += 1
             df_final = pd.concat(lista_de_lotes, ignore_index=True)

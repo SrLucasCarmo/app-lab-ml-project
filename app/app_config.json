@@ -1,0 +1,14 @@
+{
+  "pipeline": {
+    "config": {
+      "path": "DataPipeline/",
+      "file": "pipeline_config.json"
+    }
+  },
+  "model": {
+    "config": {
+      "path": "Model/",
+      "file": "model_config.json"
+    }
+}
+}

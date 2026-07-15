@@ -1,18 +1,16 @@
 """
-fraud_data_pipeline_ingestion.py — DAG Principal de Ingestão.
+1_raw_fraud_data_pipeline.py — DAG Principal de Ingestão.
 """
-
-from datetime import datetime, timedelta
+import subprocess
+import logging
+from datetime import timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 import os
 
-# ---------------------------------------------------------------------------
-# Configuração padrão
-# ---------------------------------------------------------------------------
 DEFAULT_ARGS = {
-    'owner': 'fia-labdata',
+    'owner': 'labdata',
     'depends_on_past': False,
     'start_date': days_ago(1),
     'email_on_failure': False,
@@ -21,27 +19,19 @@ DEFAULT_ARGS = {
     'retry_delay': timedelta(minutes=5),
 }
 
-# ---------------------------------------------------------------------------
-# DAG Principal: Pipeline Completo de Dados
-# ---------------------------------------------------------------------------
 dag = DAG(
-    'raw_fraud_data_pipeline',
+    '1_raw_fraud_data_pipeline',
     default_args=DEFAULT_ARGS,
-    description='Pipeline de Ingestão das tabelas do Kaggle no Minio.',
+    description='Pipeline de Ingestão das tabelas do Kaggle no Minio em ambiente Docker ou localmente em ambiente local.',
     schedule_interval='@daily',
     catchup=False,
     max_active_runs=1,
     tags=['fraud', 'pipeline', 'data-engineering','raw'],
 )
 
-def run_credencials(**context):
-    """Executa data_sanitization.py - Raw."""
-    import subprocess
-    import sys
-    import logging
-
+def run_credencials():
+    """Realiza validação das credencias de API Token do Kaggle"""
     logger = logging.getLogger(__name__)
-    #script_path = "/opt/airflow/DataPipeline/ingestion_data.py"
     comando = [
         'python', 
         '/opt/airflow/DataPipeline/ingestion_data.py', 
@@ -53,21 +43,16 @@ def run_credencials(**context):
     )
 
     if result.returncode != 0:
-        logger.error(f"Data Ingestion falhou: {result.stderr}")
-        raise Exception(f"Data Ingestion falhou: {result.stderr}")
+        logger.error(f"Falha de credencial: {result.stderr}")
+        raise Exception(f"Falha de credencial: {result.stderr}")
 
-    logger.info("Data Ingestion concluída com sucesso")
+    logger.info("Credencial validada com sucesso!")
     logger.info(result.stdout)
     return {"status": "success", "layer": "raw"}
 
-def run_download(**context):
-    """Executa data_sanitization.py - Raw."""
-    import subprocess
-    import sys
-    import logging
-
+def run_download():
+    """Realizada o download das bases do Kaggle"""
     logger = logging.getLogger(__name__)
-    #script_path = "/opt/airflow/DataPipeline/ingestion_data.py"
     comando = [
         'python', 
         '/opt/airflow/DataPipeline/ingestion_data.py', 
@@ -79,21 +64,16 @@ def run_download(**context):
     )
 
     if result.returncode != 0:
-        logger.error(f"Data Ingestion falhou: {result.stderr}")
-        raise Exception(f"Data Ingestion falhou: {result.stderr}")
+        logger.error(f"Download falhou: {result.stderr}")
+        raise Exception(f"Download falhou: {result.stderr}")
 
-    logger.info("Data Ingestion concluída com sucesso")
+    logger.info("Download concluido com sucesso!")
     logger.info(result.stdout)
     return {"status": "success", "layer": "raw"}
 
-def run_ingestion(**context):
-    """Executa data_sanitization.py - Raw."""
-    import subprocess
-    import sys
-    import logging
-
+def run_ingestion():
+    """Realizada a ingestão dos dados de acordo com o ambiente."""
     logger = logging.getLogger(__name__)
-    #script_path = "/opt/airflow/DataPipeline/ingestion_data.py"
     comando = [
         'python', 
         '/opt/airflow/DataPipeline/ingestion_data.py', 
@@ -105,10 +85,10 @@ def run_ingestion(**context):
     )
 
     if result.returncode != 0:
-        logger.error(f"Data Ingestion falhou: {result.stderr}")
-        raise Exception(f"Data Ingestion falhou: {result.stderr}")
+        logger.error(f"Falha na Ingestão: {result.stderr}")
+        raise Exception(f"Falha na Ingestão: {result.stderr}")
 
-    logger.info("Data Ingestion concluída com sucesso")
+    logger.info("Ingestão concluida com sucesso!")
     logger.info(result.stdout)
     return {"status": "success", "layer": "raw"}
 

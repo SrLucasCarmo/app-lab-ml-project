@@ -3,7 +3,7 @@
 data_sanitization.py — Limpeza e sanitização dos dados brutos de fraudes.
 
 Lê os CSVs originais (transações + identidade), faz merge, limpa e valida,
-e exporta Dados/clean_data.csv.
+e salva no Minio em ambiente Docker ou salva localmente em ambiente local.
 
 Uso:
     python DataPipeline/data_sanitization.py
@@ -14,9 +14,7 @@ from __future__ import annotations
 import os
 import json
 import logging
-import sys
 from pathlib import Path
-import numpy as np
 import pandas as pd
 from util.import_minio import MinioImport
 
@@ -35,33 +33,56 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Carregamento de configuração
 # ---------------------------------------------------------------------------
-CONFIG_PATH = Path(__file__).with_name("pipeline_config.json")
+AMBIENTE_ATUAL = os.getenv('AMBIENTE', 'local')
 
+CONFIG_PATH = Path(__file__).with_name("pipeline_config.json")
 with CONFIG_PATH.open("r", encoding="utf-8") as fh:
     CFG = json.load(fh)
 
-PATHS = CFG["paths"]
+RAIZ = Path(__file__).resolve().parent.parent
+PATHS = CFG["paths"][AMBIENTE_ATUAL]
 BUCKET = CFG["bucket"]
 FILES = CFG["files"]
+FILES_TRANSF = CFG["files_tranformation"][AMBIENTE_ATUAL]
+FILES_REPORT = CFG["file_report"]
 CLEAN_CFG = CFG["cleaning"]
 META = CFG["metadata"]
+LIMITATION = CFG["limitation"]
+
 
 
 # ---------------------------------------------------------------------------
 # Funções utilitárias
 # ---------------------------------------------------------------------------
+
+def chunk_control(caminho_arquivo) -> pd.DataFrame:
+    """Le arquivo CSV aplicando chunk size configurado e retorna Dataframe"""
+    iterador_csv = pd.read_csv(caminho_arquivo, chunksize=LIMITATION["chunk_size"])        
+    lista_de_lotes = []    
+    contador = 0 
+    for chunk in iterador_csv:
+        if(contador <= LIMITATION["chunk_count"]):
+            lista_de_lotes.append(chunk)
+            contador += 1
+    df_final = pd.concat(lista_de_lotes, ignore_index=True)
+    return df_final
+
 def load_and_merge() -> pd.DataFrame:
-
     """Carrega identidade inteira e transações em lotes, filtrando antecipadamente."""
-    
-    # 1. Carrega a tabela MENOR (Identidade) inteira para a memória
-    logger.info("Carregando identidade (tabela menor): %s", FILES[1])
-    minio_ident = MinioImport(BUCKET["raw"][0], '', os.path.join(BUCKET["raw"][1], FILES[1]), '')
-    df_ident = minio_ident.ler_csv_minio(10000)
+    if AMBIENTE_ATUAL == 'docker':
+        # 1. Carrega a tabela MENOR (Identidade) inteira para a memória
+        logger.info("Carregando identidade em lotes (chunksize): %s", FILES[1])
+        minio_ident = MinioImport(BUCKET["raw"][0], '', os.path.join(BUCKET["raw"][1], FILES[1]), '')
+        df_ident = minio_ident.ler_csv_minio()
 
-    logger.info("Carregando transações em lotes (chunksize): %s", FILES[0])
-    minio_trans = MinioImport(BUCKET["raw"][0], '', os.path.join(BUCKET["raw"][1], FILES[0]), '')
-    df_trans_iter = minio_trans.ler_csv_minio(10000) 
+        logger.info("Carregando transações em lotes (chunksize): %s", FILES[0])
+        minio_trans = MinioImport(BUCKET["raw"][0], '', os.path.join(BUCKET["raw"][1], FILES[0]), '')
+        df_trans_iter = minio_trans.ler_csv_minio() 
+    else:
+        logger.info("Carregando identidade em lotes (chunksize): %s", FILES[1])
+        df_ident = chunk_control(os.path.join(PATHS["raw"], FILES[1]))
+        logger.info("Carregando transações em lotes (chunksize): %s", FILES[0])
+        df_trans_iter = chunk_control(os.path.join(PATHS["raw"], FILES[0]))
     
     df = df_trans_iter.merge(df_ident, on=META["id_column"], how="left")
 
@@ -259,7 +280,31 @@ def generate_report(
         ),
     }
     return report
+def save(df: pd.DataFrame):
+    """Salva arquivo transformado no Minio em ambiente docker ou salva localmente em ambiente local"""
+    if AMBIENTE_ATUAL == 'docker':  
+        try: 
+            tmp_parquet = os.path.join("/tmp/", FILES_TRANSF["clean_data"])
+            logger.info("Salvando base transformada")
+            df.to_parquet(tmp_parquet,index=False)
+            bucket_destino = BUCKET['trusted'][0]
+            obj_destino = os.path.join(BUCKET["trusted"][1], FILES_TRANSF["clean_data"])
+            logger.info(f"Fazendo upload para o MinIO: {bucket_destino}/{obj_destino}")
+            minio = MinioImport(bucket_destino,tmp_parquet,obj_destino,"application/vnd.apache.parquet")
+            minio.salvar_arquivo_minio()
 
+            if os.path.exists(tmp_parquet):
+                os.remove(tmp_parquet)
+            print("Processo concluído com sucesso!")
+        except Exception:
+            logger.error("ERRO: Não foi possivel realizadar o upload do arquivo.")
+    else:
+        try:
+            logger.info("Salvando base transformada")
+            df.to_csv(os.path.join(PATHS["clean_data"], FILES_TRANSF["clean_data"]), index=False)
+            print("Processo concluído com sucesso!")
+        except Exception:
+            logger.error("ERRO: Não foi salvar o arquivo.")
 
 # ---------------------------------------------------------------------------
 # Main
@@ -319,23 +364,12 @@ def main() -> None:
     report = generate_report(
         initial_shape, df, outliers_info, categorical_profiles, steps
     )
+    save(df)
 
-    tmp_parquet = "/tmp/clean_data.parquet"
-    output_json = Path(PATHS["clean_data"]).with_suffix(".json").with_name("clean_data_report.json")
-    logger.info("Salvando base transformada")
-    df.to_parquet(tmp_parquet,index=False)
+    output_json = RAIZ / PATHS["clean_data"] / FILES_REPORT["clean_data"]
     logger.info("Exportando relatório: %s", output_json)
     with output_json.open("w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, ensure_ascii=False)
-    bucket_destino = BUCKET['trusted'][0]
-    obj_destino = os.path.join(BUCKET["trusted"][1], 'clean_data.parquet')
-    logger.info(f"Fazendo upload para o MinIO: {bucket_destino}/{obj_destino}")
-    minio = MinioImport(bucket_destino,tmp_parquet,obj_destino,"application/vnd.apache.parquet")
-    minio.salvar_arquivo_minio()
-
-    if os.path.exists(tmp_parquet):
-        os.remove(tmp_parquet)
-    print("Processo concluído com sucesso!")
     
     # Print summary
     print()

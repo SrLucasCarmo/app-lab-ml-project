@@ -19,7 +19,9 @@ Dados/test_*.csv
 # Data - Generated files (too large for Git, regenerate via pipeline)
 Dados/raw_data.csv
 Dados/clean_data.csv
-Dados/abt.csv
+Dados/abt_data.csv
+Dados/predictions.csv
+Dados/demonstration.csv
 Dados/database/*.csv
 Dados/database/.complete
 

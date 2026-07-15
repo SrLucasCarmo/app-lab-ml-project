@@ -1,5 +1,11 @@
 {
   "model_config": {
+    "pipeline": {
+      "config": {
+        "path": "DataPipeline/",
+        "file": "pipeline_config.json"
+      }
+    },
     "model": {
       "algorithm": "LightGBM",
       "library": "lightgbm",
@@ -11,6 +17,14 @@
         "refined",
         "/ieee-fraud-detection/"
       ]
+    },
+    "output": {
+      "model": "fraud_model.pkl",
+      "metrics": "training_metrics.json",
+      "scaler": "scaler.pkl",
+      "scaler_report": "scaler_features.json",
+      "threshold": "threshold.json",
+      "optuna": "optuna_study.pkl"
     },
     "hyperparameters": {
       "n_estimators": 200,
@@ -52,174 +66,187 @@
     }
   },
   "selected_model": "XGBoost",
-  "best_params": {},
+  "best_params": {
+    "n_estimators": 470,
+    "max_depth": 6,
+    "learning_rate": 0.04996935030052625,
+    "subsample": 0.8595849191581006,
+    "colsample_bytree": 0.9678381778758314,
+    "min_child_weight": 10,
+    "gamma": 4.193463346077287,
+    "reg_alpha": 0.39263429886572077,
+    "reg_lambda": 7.74320718951544,
+    "scale_pos_weight": 36.15209285142527
+  },
   "test_metrics": {
-    "roc_auc": 0.9185673370049018,
-    "precision": 0.6291079812206573,
-    "recall": 0.5929203539823009,
-    "f1": 0.6104783599088839,
-    "fbeta_2": 0.5998209489704566,
-    "pr_auc": 0.658276666217551,
+    "roc_auc": 0.8880739795918368,
+    "precision": 0.25,
+    "recall": 0.125,
+    "f1": 0.16666666666666666,
+    "fbeta_2": 0.1388888888888889,
+    "pr_auc": 0.2507051391177044,
     "confusion_matrix": [
       [
-        7695,
-        79
+        389,
+        3
       ],
       [
-        92,
-        134
+        7,
+        1
       ]
     ],
-    "tn": 7695,
-    "fp": 79,
-    "fn": 92,
-    "tp": 134,
+    "tn": 389,
+    "fp": 3,
+    "fn": 7,
+    "tp": 1,
     "feature_importance_top20": [
       {
-        "feature": "V69",
-        "importance": 0.04370873421430588
-      },
-      {
-        "feature": "M4_missing",
-        "importance": 0.04141063988208771
-      },
-      {
-        "feature": "card6_encoded",
-        "importance": 0.027168016880750656
-      },
-      {
-        "feature": "V_top20_sum",
-        "importance": 0.020959243178367615
-      },
-      {
         "feature": "V70",
-        "importance": 0.01954696886241436
+        "importance": 0.06092806160449982
       },
       {
-        "feature": "V_top20_mean",
-        "importance": 0.019472874701023102
+        "feature": "V69",
+        "importance": 0.04063142463564873
       },
       {
-        "feature": "card3",
-        "importance": 0.016013242304325104
+        "feature": "V97",
+        "importance": 0.03451641649007797
       },
       {
-        "feature": "M4",
-        "importance": 0.015950651839375496
+        "feature": "V197",
+        "importance": 0.030877819284796715
       },
       {
-        "feature": "card6",
-        "importance": 0.012007727287709713
-      },
-      {
-        "feature": "V257",
-        "importance": 0.011683288961648941
-      },
-      {
-        "feature": "V322",
-        "importance": 0.010118778795003891
-      },
-      {
-        "feature": "V258",
-        "importance": 0.009323199279606342
-      },
-      {
-        "feature": "V331",
-        "importance": 0.008642122149467468
-      },
-      {
-        "feature": "V198",
-        "importance": 0.008519604802131653
-      },
-      {
-        "feature": "V267",
-        "importance": 0.00816409196704626
-      },
-      {
-        "feature": "V206",
-        "importance": 0.008159524761140347
+        "feature": "C_sum",
+        "importance": 0.026434579864144325
       },
       {
         "feature": "V91",
-        "importance": 0.008142820559442043
+        "importance": 0.023635605350136757
       },
       {
-        "feature": "V243",
-        "importance": 0.008047349750995636
+        "feature": "V128",
+        "importance": 0.02130134217441082
       },
       {
-        "feature": "V332",
-        "importance": 0.00791451521217823
+        "feature": "V30",
+        "importance": 0.019243575632572174
       },
       {
-        "feature": "V100",
-        "importance": 0.007835463620722294
+        "feature": "V18",
+        "importance": 0.017720820382237434
+      },
+      {
+        "feature": "V131",
+        "importance": 0.01766710728406906
+      },
+      {
+        "feature": "R_emaildomain",
+        "importance": 0.016324296593666077
+      },
+      {
+        "feature": "V123",
+        "importance": 0.01579933986067772
+      },
+      {
+        "feature": "V48",
+        "importance": 0.014942332170903683
+      },
+      {
+        "feature": "V189",
+        "importance": 0.013480541296303272
+      },
+      {
+        "feature": "V19",
+        "importance": 0.01342211477458477
+      },
+      {
+        "feature": "V17",
+        "importance": 0.01263840775936842
+      },
+      {
+        "feature": "V253",
+        "importance": 0.012518350034952164
+      },
+      {
+        "feature": "V137",
+        "importance": 0.012307879514992237
+      },
+      {
+        "feature": "addr1",
+        "importance": 0.011563533917069435
+      },
+      {
+        "feature": "V126",
+        "importance": 0.011507472954690456
       }
     ]
   },
   "cross_validation": {
     "roc_auc": {
       "scores": [
-        0.9077752770406521,
-        0.9029101429543906
+        0.903938137755102,
+        0.8763428743144768
       ],
-      "mean": 0.9053427099975213,
-      "std": 0.002432567043130718,
-      "min": 0.9029101429543906,
-      "max": 0.9077752770406521
+      "mean": 0.8901405060347893,
+      "std": 0.01379763172031262,
+      "min": 0.8763428743144768,
+      "max": 0.903938137755102
     },
     "f1": {
       "scores": [
-        0.6284289276807979,
-        0.654040404040404
+        0.39999999999999997,
+        0.3
       ],
-      "mean": 0.641234665860601,
-      "std": 0.012805738179803017,
-      "min": 0.6284289276807979,
-      "max": 0.654040404040404
+      "mean": 0.35,
+      "std": 0.04999999999999999,
+      "min": 0.3,
+      "max": 0.39999999999999997
     },
     "precision": {
       "scores": [
-        0.717948717948718,
-        0.7617647058823529
+        0.42857142857142855,
+        0.2608695652173913
       ],
-      "mean": 0.7398567119155355,
-      "std": 0.021907993966817474,
-      "min": 0.717948717948718,
-      "max": 0.7617647058823529
+      "mean": 0.3447204968944099,
+      "std": 0.08385093167701863,
+      "min": 0.2608695652173913,
+      "max": 0.42857142857142855
     },
     "recall": {
       "scores": [
-        0.5587583148558758,
-        0.5730088495575221
+        0.375,
+        0.35294117647058826
       ],
-      "mean": 0.565883582206699,
-      "std": 0.007125267350823139,
-      "min": 0.5587583148558758,
-      "max": 0.5730088495575221
+      "mean": 0.36397058823529416,
+      "std": 0.011029411764705871,
+      "min": 0.35294117647058826,
+      "max": 0.375
     },
     "predictions": {
-      "roc_auc": 0.9051868423994353,
-      "precision": 0.7395079594790159,
-      "recall": 0.5658914728682171,
-      "f1": 0.6411543287327478,
-      "fbeta_2": 0.5937717871252615,
-      "pr_auc": 0.6533121813959386
+      "roc_auc": 0.8908549438223976,
+      "precision": 0.32432432432432434,
+      "recall": 0.36363636363636365,
+      "f1": 0.34285714285714286,
+      "fbeta_2": 0.3550295857988166,
+      "pr_auc": 0.33170892567257054
     }
   },
   "overfitting_analysis": {
-    "roc_auc_gap": -0.013224627007380474,
-    "cv_roc_auc_mean": 0.9053427099975213,
-    "test_roc_auc": 0.9185673370049018,
-    "f1_gap": 0.030756305951717078,
-    "cv_f1_mean": 0.641234665860601,
-    "test_f1": 0.6104783599088839,
-    "fbeta_2_gap": -0.006049161845195106,
-    "cv_fbeta_2_mean": 0.5937717871252615,
-    "test_fbeta_2": 0.5998209489704566,
+    "roc_auc_gap": 0.0020665264429525765,
+    "cv_roc_auc_mean": 0.8901405060347893,
+    "test_roc_auc": 0.8880739795918368,
+    "f1_gap": 0.18333333333333332,
+    "cv_f1_mean": 0.35,
+    "test_f1": 0.16666666666666666,
+    "fbeta_2_gap": 0.2161406969099277,
+    "cv_fbeta_2_mean": 0.3550295857988166,
+    "test_fbeta_2": 0.1388888888888889,
     "overfitting_detected": true,
     "warnings": [
-      "F1 gap > 0.03 (0.0308) - possível overfitting"
+      "F1 gap > 0.03 (0.1833) - possível overfitting",
+      "F-beta(2) gap > 0.03 (0.2161) - possível overfitting",
+      "CV ROC-AUC std alto (0.0138) - modelo instável"
     ]
   }
 }

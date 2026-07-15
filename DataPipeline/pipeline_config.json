@@ -4,15 +4,49 @@
   "institution": "FIA Business School - LABDATA",
   "version": "1.0.0",
   "paths": {
-    "raw": "/opt/airflow/Dados/database/",
-    "clean_data": "/opt/airflow/Dados/",
-    "abt_data": "/opt/airflow/Dados/"
+    "local": {
+      "raw": "Dados/database/",
+      "clean_data": "Dados/",
+      "abt_data": "Dados/",
+      "predict": "Dados/",
+      "demonstration": "Dados/"
+    },
+    "docker":{
+      "raw": "/opt/airflow/Dados/database/",
+      "clean_data": "/opt/airflow/Dados/",
+      "abt_data": "/opt/airflow/Dados/",
+      "predict": "/opt/airflow/Dados/",
+      "demonstration": "/opt/airflow/Dados/"
+    }
   },
   "files": ["train_transaction.csv","train_identity.csv"],
+  "files_tranformation": {
+    "local": {
+      "clean_data": "clean_data.csv",
+      "abt_data": "abt_data.csv",
+      "predict": "predictions.csv",
+      "demonstration": "demonstration.csv"
+    },
+    "docker":{
+      "clean_data": "clean_data.parquet",
+      "abt_data": "abt_data.parquet",
+      "predict": "predictions.parquet",
+      "demonstration": "demonstration.csv"
+    }
+  },
+  "file_report": {
+    "clean_data": "clean_data_report.json",
+    "abt_data": "abt_metadata.json"
+  },
   "bucket": {
     "raw": ["raw","/ieee-fraud-detection/"],
     "trusted": ["trusted","/ieee-fraud-detection/"],
-    "refined": ["refined","/ieee-fraud-detection/"]
+    "refined": ["refined","/ieee-fraud-detection/"],
+    "predict": ["predict","/ieee-fraud-detection/"]
+  },
+  "limitation": {
+    "chunk_size": 500,
+    "chunk_count": 3
   },
   "cleaning": {
     "null_threshold": 0.9,

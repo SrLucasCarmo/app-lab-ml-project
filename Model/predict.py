@@ -8,6 +8,7 @@ Garante alinhamento de features com o scaler treinado.
 
 from __future__ import annotations
 
+import os
 import argparse
 import json
 import logging
@@ -17,6 +18,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+pasta_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if pasta_raiz not in sys.path:
+    sys.path.append(pasta_raiz)
+from DataPipeline.util.import_minio import MinioImport
 
 # ---------------------------------------------------------------------------
 # Configuração
@@ -28,11 +33,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MODEL_DIR = Path(__file__).parent
-MODEL_PATH = MODEL_DIR / "fraud_model.pkl"
-SCALER_PATH = MODEL_DIR / "scaler.pkl"
-THRESHOLD_PATH = MODEL_DIR / "threshold.json"
-SCALER_FEATURES_PATH = MODEL_DIR / "scaler_features.json"
+AMBIENTE_ATUAL = os.getenv('AMBIENTE', 'local')
+
+MODEL_CONFIG = Path(__file__).with_name("model_config.json")
+with MODEL_CONFIG.open("r", encoding="utf-8") as fh:
+    MC = json.load(fh)
+
+RAIZ = Path(__file__).resolve().parent.parent
+PASTA_ATUAL = Path(__file__).parent
+
+OUTPUT = MC["output"]
+MODEL_PATH = PASTA_ATUAL / OUTPUT["model"]
+SCALER_PATH = PASTA_ATUAL / OUTPUT["scaler"]
+THRESHOLD_PATH = PASTA_ATUAL / OUTPUT["threshold"]
+SCALER_FEATURES_PATH = PASTA_ATUAL / OUTPUT["scaler_report"]
+
+CONFIG_PIPELINE = RAIZ / MC["pipeline"]["config"]["path"] / MC["pipeline"]["config"]["file"]
+with CONFIG_PIPELINE.open("r", encoding="utf-8") as fh:
+    CPP = json.load(fh)
+
+PATHS = CPP["paths"][AMBIENTE_ATUAL]
+FILES_TRANSF = CPP["files_tranformation"][AMBIENTE_ATUAL]
+BUCKET = CPP["bucket"]
 
 
 def load_artifacts():
@@ -128,27 +150,47 @@ def predict(model, scaler, data: pd.DataFrame, threshold: float = 0.5, scaler_fe
 
 def save_predictions(data: pd.DataFrame, y_pred: np.ndarray, y_proba: np.ndarray,
                      output_path: Path) -> None:
-    """Salva predições em CSV."""
+    """Salva predições no Minio se ambiente docker ou localmente se ambiente local."""
     out = data.copy()
     out["fraud_probability"] = y_proba
     out["fraud_prediction"] = y_pred
-    out.to_csv(output_path, index=False)
-    logger.info("Predições salvas: %s", output_path)
-
+    if AMBIENTE_ATUAL == 'docker':
+        try:
+            logger.info("Salvando predições")
+            tmp_parquet = os.path.join("/tmp/", FILES_TRANSF["predict"])
+            data.to_parquet(tmp_parquet,index=False)
+            bucket_destino = BUCKET['predict'][0]
+            obj_destino = os.path.join(BUCKET["predict"][1], FILES_TRANSF["predict"])
+            logger.info(f"Fazendo upload para o MinIO: {bucket_destino}/{obj_destino}")
+            minio = MinioImport(bucket_destino,tmp_parquet,obj_destino,"application/vnd.apache.parquet")
+            minio.salvar_arquivo_minio()
+            logger.info("Predições salvas: %s", output_path)
+        except Exception:
+            logger.error("ERRO: Não foi possivel realizadar o upload do arquivo.")
+    else:
+        try:
+            logger.info("Salvando predições")
+            data.to_csv(os.path.join(PATHS["predict"], FILES_TRANSF["predict"]), index=False)
+            logger.info("Predições salvas: %s", output_path)
+        except Exception:
+            logger.error("ERRO: Não foi salvar o arquivo.")
 
 def main():
-    parser = argparse.ArgumentParser(description="Predição de fraude (LightGBM/XGBoost)")
-    parser.add_argument("--input", "-i", required=True, help="Arquivo CSV de entrada")
-    parser.add_argument("--output", "-o", default="predictions.csv", help="Arquivo CSV de saída")
-    parser.add_argument("--threshold", "-t", type=float, default=None, help="Threshold customizado")
-    args = parser.parse_args()
-
-    input_path = Path(args.input)
-    output_path = Path(args.output)
-
-    if not input_path.exists():
-        logger.error("Arquivo não encontrado: %s", input_path)
-        sys.exit(1)
+    if AMBIENTE_ATUAL == 'docker':
+        minio_ident = MinioImport(BUCKET["predict"][0], '', os.path.join(BUCKET["predict"][1], FILES_TRANSF["predict"]), '')
+        df = minio_ident.ler_parquet_minio()
+    else:
+        parser = argparse.ArgumentParser(description="Predição de fraude (LightGBM/XGBoost)")
+        parser.add_argument("--input", "-i", required=True, help="Arquivo CSV de entrada")
+        parser.add_argument("--output", "-o", default="predictions.csv", help="Arquivo CSV de saída")
+        parser.add_argument("--threshold", "-t", type=float, default=None, help="Threshold customizado")
+        args = parser.parse_args()
+        input_path = Path(args.input)
+        output_path = Path(args.output)
+        if not input_path.exists():
+            logger.error("Arquivo não encontrado: %s", input_path)
+            sys.exit(1)
+        df = pd.read_csv(input_path)
 
     logger.info("=" * 60)
     logger.info("PREDIÇÃO DE FRAUDE (LightGBM/XGBoost)")

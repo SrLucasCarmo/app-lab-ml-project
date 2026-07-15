@@ -3,7 +3,7 @@
 abt_transform.py — Transformação dos dados limpos em ABT (Analytical Base Table).
 
 Lê Dados/clean_data.csv, aplica feature engineering, encoding, seleção de features,
-train/test split e normalização, exportando Dados/abt.csv.
+train/test split e normalização, salva dados no Minio em ambiente Docker ou salva localmente em ambiente local
 
 Insights do EDA (exp_analysis.ipynb) incorporados:
 - Missingness as signal: flags para colunas com >30% nulos
@@ -28,7 +28,6 @@ from __future__ import annotations
 import os
 import json
 import logging
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -51,16 +50,20 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Carregamento de configuração
 # ---------------------------------------------------------------------------
-CONFIG_PATH = Path(__file__).with_name("pipeline_config.json")
+AMBIENTE_ATUAL = os.getenv('AMBIENTE', 'local')
 
+CONFIG_PATH = Path(__file__).with_name("pipeline_config.json")
 with CONFIG_PATH.open("r", encoding="utf-8") as fh:
     CFG = json.load(fh)
 
-PATHS = CFG["paths"]
+RAIZ = Path(__file__).resolve().parent.parent
+PATHS = CFG["paths"][AMBIENTE_ATUAL]
 ABT_CFG = CFG["abt"]
 META = CFG["metadata"]
 BUCKET = CFG["bucket"]
 FILES = CFG["files"]
+FILES_TRANSF = CFG["files_tranformation"][AMBIENTE_ATUAL]
+FILES_REPORT = CFG["file_report"]
 
 # ---------------------------------------------------------------------------
 # Funções utilitárias
@@ -517,16 +520,46 @@ def compute_correlations(abt: pd.DataFrame) -> list[dict]:
     corr_list.sort(key=lambda x: abs(x["correlation"]), reverse=True)
     return corr_list
 
+def load_clean_data() -> pd.DataFrame:
+    """Carrega dados clean data"""
+    if AMBIENTE_ATUAL == 'docker':
+        minio_ident = MinioImport(BUCKET["trusted"][0], '', os.path.join(BUCKET["trusted"][1], FILES_TRANSF["clean_data"]), '')
+        df = minio_ident.ler_parquet_minio()
+    else:
+        df = pd.read_csv(os.path.join(PATHS["clean_data"],FILES_TRANSF["clean_data"]))
+    return df
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
+def save_sample_demonstration(df: pd.DataFrame):
+    df.sample(200).to_csv(os.path.join(PATHS["demonstration"], FILES_TRANSF["demonstration"]), index=False)
+
+def save_abt(df):
+    if AMBIENTE_ATUAL == 'docker':
+        try:
+            tmp_parquet = os.path.join("/tmp/", FILES_TRANSF["abt_data"])
+            save_sample_demonstration(df)
+            df.to_parquet(tmp_parquet,index=False)
+            bucket_destino = BUCKET['refined'][0]
+            obj_destino = os.path.join(BUCKET["refined"][1], FILES_TRANSF["abt_data"])
+            logger.info(f"Fazendo upload para o MinIO: {bucket_destino}/{obj_destino}")
+            minio = MinioImport(bucket_destino,tmp_parquet,obj_destino,"application/vnd.apache.parquet")
+            minio.salvar_arquivo_minio()
+        except Exception:
+            logger.error("ERRO: Não foi possivel realizadar o upload do arquivo.")
+    else:
+        try:
+            logger.info("Salvando base transformada")
+            save_sample_demonstration(df)
+            df.to_csv(os.path.join(PATHS["abt_data"], FILES_TRANSF["abt_data"]), index=False)
+            print("Processo concluído com sucesso!")
+        except Exception:
+            logger.error("ERRO: Não foi salvar o arquivo.")
+
+
 def main() -> None:
     logger.info("=" * 60)
     logger.info("ABT TRANSFORM - Fraud Detection Pipeline")
     logger.info("=" * 60)
-    minio_ident = MinioImport(BUCKET["trusted"][0], '', os.path.join(BUCKET["trusted"][1], "clean_data.parquet"), '')
-    df = minio_ident.ler_parquet_minio()
+    df = load_clean_data()
     # 2. Profiling
     groups = profile_columns(df)
     for name, cols in groups.items():
@@ -586,13 +619,7 @@ def main() -> None:
     }
 
     # 13. Exportar ABT
-    tmp_parquet = "/tmp/abt_data.parquet"
-    abt_full.to_parquet(tmp_parquet,index=False)
-    bucket_destino = BUCKET['refined'][0]
-    obj_destino = os.path.join(BUCKET["refined"][1], 'abt_data.parquet')
-    logger.info(f"Fazendo upload para o MinIO: {bucket_destino}/{obj_destino}")
-    minio = MinioImport(bucket_destino,tmp_parquet,obj_destino,"application/vnd.apache.parquet")
-    minio.salvar_arquivo_minio()
+    save_abt(abt_full)
 
     # 14. Metadata
     metadata = {
@@ -630,7 +657,7 @@ def main() -> None:
         "encoding_mappings": {k: int(v) for k, v in encoding_mappings.items()},
     }
 
-    metadata_path = Path(PATHS["abt_data"]).with_suffix(".json").with_name("abt_metadata.json")
+    metadata_path = RAIZ / PATHS["abt_data"] / FILES_REPORT["abt_data"]
     logger.info("Exportando metadata: %s", metadata_path)
     with metadata_path.open("w", encoding="utf-8") as fh:
         json.dump(metadata, fh, indent=2, ensure_ascii=False)

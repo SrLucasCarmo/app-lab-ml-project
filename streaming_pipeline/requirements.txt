@@ -9,6 +9,5 @@ lightgbm>=4.3.0
 xgboost>=2.0.0
 kagglehub==1.0.2
 python-dotenv==1.2.2
-polars>=1.0.0
-s3fs>=2023.1.0
 pyarrow==13.0.0
+optuna==4.2.1

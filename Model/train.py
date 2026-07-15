@@ -85,30 +85,37 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) 
 
 
 # ---------------------------------------------------------------------------
 # Carregamento de configuração
 # ---------------------------------------------------------------------------
-CONFIG_PATH = Path(__file__).with_name("model_config.json")
+AMBIENTE_ATUAL = os.getenv('AMBIENTE', 'local')
+MODEL_CONFIG = Path(__file__).with_name("model_config.json")
+with MODEL_CONFIG.open("r", encoding="utf-8") as fh:
+    MC = json.load(fh)
 
-with CONFIG_PATH.open("r", encoding="utf-8") as fh:
-    CFG = json.load(fh)
+RAIZ = Path(__file__).resolve().parent.parent
+PASTA_ATUAL = Path(__file__).parent
+MODEL_CFG = MC["model"]
+HYPERPARAMS = MC["hyperparameters"]
+TRAIN_CFG = MC["training"]
+EVAL_CFG = MC["evaluation"]
+OUTPUT = MC["output"]
 
-MODEL_CFG = CFG["model"]
-HYPERPARAMS = CFG["hyperparameters"]
-TRAIN_CFG = CFG["training"]
-EVAL_CFG = CFG["evaluation"]
+MODEL_OUTPUT = PASTA_ATUAL / OUTPUT["model"]
+METRICS_OUTPUT = PASTA_ATUAL / OUTPUT["metrics"]
+OPTUNA_STUDY_OUTPUT = PASTA_ATUAL / OUTPUT["optuna"]
 
-# Paths
-ABT_PATH = Path(__file__).parent.parent / "Dados" / "abt.csv"
-MODEL_OUTPUT = Path(__file__).parent / "fraud_model.pkl"
-METRICS_OUTPUT = Path(__file__).parent / "training_metrics.json"
-OPTUNA_STUDY_OUTPUT = Path(__file__).parent / "optuna_study.pkl"
+CONFIG_PIPELINE = RAIZ / MC["pipeline"]["config"]["path"] / MC["pipeline"]["config"]["file"]
+with CONFIG_PIPELINE.open("r", encoding="utf-8") as fh:
+    CPP = json.load(fh)
 
+PATHS = CPP["paths"][AMBIENTE_ATUAL]
+FILES_TRANSF = CPP["files_tranformation"][AMBIENTE_ATUAL]
+BUCKET = CPP["bucket"]
 
-BUCKET = CFG["bucket"]
 
 
 # ---------------------------------------------------------------------------
@@ -136,12 +143,18 @@ def json_serializable(obj):
 
 def load_abt() -> pd.DataFrame:
     """Carrega a ABT."""
-    logger.info("Carregando ABT: %s", ABT_PATH)
-    minio_ident = MinioImport(BUCKET["refined"][0], '', os.path.join(BUCKET["refined"][1], "abt_data.parquet"), '')
-    df = minio_ident.ler_parquet_minio()
-    logger.info("ABT carregada: %s linhas x %s colunas", f"{df.shape[0]:,}", df.shape[1])
+    logger.info("Carregando ABT...")
+    try:
+        if AMBIENTE_ATUAL == 'docker':
+            minio_ident = MinioImport(BUCKET["refined"][0], '', os.path.join(BUCKET["refined"][1], FILES_TRANSF["abt_data"]), '')
+            df = minio_ident.ler_parquet_minio()
+        else:
+            df = pd.read_csv(os.path.join(PATHS["abt_data"],FILES_TRANSF["abt_data"]))
+        logger.info("ABT carregada: %s linhas x %s colunas", f"{df.shape[0]:,}", df.shape[1])
+    except Exception:
+        logger.error("ERRO: Não foi carregar a abt")
+        sys.exit(1)
     return df
-
 
 def split_data(df: pd.DataFrame) -> tuple:
     """Separa treino, validação e teste."""
@@ -643,7 +656,7 @@ def save_model(model, model_name: str, metrics: dict, cv_results: dict, overfitt
 
     # Métricas completas
     full_metrics = {
-        "model_config": CFG,
+        "model_config": MC,
         "selected_model": model_name,
         "best_params": best_params,
         "test_metrics": metrics,

@@ -1,11 +1,11 @@
 {
   "dataset_info": {
-    "total_rows": 590540,
-    "total_features": 462,
+    "total_rows": 40000,
+    "total_features": 500,
     "target": "isFraud",
-    "train_rows": 472432,
-    "test_rows": 118108,
-    "fraud_rate": 0.03499
+    "train_rows": 32000,
+    "test_rows": 8000,
+    "fraud_rate": 0.028225
   },
   "feature_groups": {
     "V_variables": 339,
@@ -14,7 +14,7 @@
     "M_variables": 9,
     "card_variables": 10,
     "engineered_features": 49,
-    "missing_flags": 27
+    "missing_flags": 65
   },
   "transformations_applied": [
     "log1p(TransactionAmt) -> TransactionAmt_log",
@@ -478,16 +478,16 @@
     "risk_flag_sum",
     "D2_missing",
     "D3_missing",
+    "D4_missing",
     "D5_missing",
     "D11_missing",
+    "D15_missing",
     "M1_missing",
     "M2_missing",
     "M3_missing",
     "M4_missing",
     "M5_missing",
-    "M7_missing",
-    "M8_missing",
-    "M9_missing",
+    "M6_missing",
     "V1_missing",
     "V2_missing",
     "V3_missing",
@@ -498,88 +498,126 @@
     "V8_missing",
     "V9_missing",
     "V10_missing",
-    "V11_missing"
+    "V11_missing",
+    "V35_missing",
+    "V36_missing",
+    "V37_missing",
+    "V38_missing",
+    "V39_missing",
+    "V40_missing",
+    "V41_missing",
+    "V42_missing",
+    "V43_missing",
+    "V44_missing",
+    "V45_missing",
+    "V46_missing",
+    "V47_missing",
+    "V48_missing",
+    "V49_missing",
+    "V50_missing",
+    "V51_missing",
+    "V52_missing",
+    "V75_missing",
+    "V76_missing",
+    "V77_missing",
+    "V78_missing",
+    "V79_missing",
+    "V80_missing",
+    "V81_missing",
+    "V82_missing",
+    "V83_missing",
+    "V84_missing",
+    "V85_missing",
+    "V86_missing",
+    "V87_missing",
+    "V88_missing",
+    "V89_missing",
+    "V90_missing",
+    "V91_missing",
+    "V92_missing",
+    "V93_missing",
+    "V94_missing"
   ],
   "strong_predictors": [
     {
-      "feature": "V257",
-      "correlation": 0.280214
-    },
-    {
-      "feature": "V246",
-      "correlation": 0.26809
-    },
-    {
-      "feature": "V244",
-      "correlation": 0.265712
-    },
-    {
-      "feature": "V242",
-      "correlation": 0.263476
-    },
-    {
       "feature": "V201",
-      "correlation": 0.246462
-    },
-    {
-      "feature": "V200",
-      "correlation": 0.23829
+      "correlation": 0.227469
     },
     {
       "feature": "V45",
-      "correlation": 0.235436
+      "correlation": 0.199984
     },
     {
       "feature": "V189",
-      "correlation": 0.225829
+      "correlation": 0.198854
     },
     {
-      "feature": "V86",
-      "correlation": 0.222343
-    },
-    {
-      "feature": "V87",
-      "correlation": 0.221568
-    },
-    {
-      "feature": "V258",
-      "correlation": 0.220304
-    },
-    {
-      "feature": "V188",
-      "correlation": 0.21959
-    },
-    {
-      "feature": "V44",
-      "correlation": 0.21787
-    },
-    {
-      "feature": "V228",
-      "correlation": 0.207138
-    },
-    {
-      "feature": "V170",
-      "correlation": 0.203019
-    },
-    {
-      "feature": "V52",
-      "correlation": 0.195492
-    },
-    {
-      "feature": "V171",
-      "correlation": 0.18239
+      "feature": "V200",
+      "correlation": 0.198844
     },
     {
       "feature": "V199",
-      "correlation": 0.182031
+      "correlation": 0.187371
     },
     {
-      "feature": "V51",
-      "correlation": 0.182007
+      "feature": "V87",
+      "correlation": 0.182779
     },
     {
-      "feature": "V230",
-      "correlation": 0.179935
+      "feature": "V198",
+      "correlation": 0.182289
+    },
+    {
+      "feature": "V44",
+      "correlation": 0.173717
+    },
+    {
+      "feature": "V257",
+      "correlation": 0.170063
+    },
+    {
+      "feature": "V23",
+      "correlation": 0.168056
+    },
+    {
+      "feature": "V24",
+      "correlation": 0.166352
+    },
+    {
+      "feature": "V186",
+      "correlation": 0.165803
+    },
+    {
+      "feature": "V190",
+      "correlation": 0.164763
+    },
+    {
+      "feature": "V123",
+      "correlation": 0.16464
+    },
+    {
+      "feature": "V188",
+      "correlation": 0.163027
+    },
+    {
+      "feature": "V197",
+      "correlation": 0.163011
+    },
+    {
+      "feature": "V231",
+      "correlation": 0.162356
+    },
+    {
+      "feature": "V52",
+      "correlation": 0.160588
+    },
+    {
+      "feature": "card3",
+      "correlation": 0.154262
+    },
+    {
+      "feature": "V171",
+      "correlation": 0.154022
     }
   ],
   "encoding_mappings": {
@@ -587,10 +625,10 @@
     "card4": 5,
     "card6": 5,
     "P_emaildomain": 60,
-    "R_emaildomain": 61,
+    "R_emaildomain": 57,
     "DeviceType": 3,
-    "DeviceInfo": 1787,
-    "M1": 3,
+    "DeviceInfo": 513,
+    "M1": 2,
     "M2": 3,
     "M3": 3,
     "M4": 4,
@@ -600,28 +638,28 @@
     "M8": 3,
     "M9": 3,
     "id_12": 3,
-    "id_13": 54,
-    "id_14": 25,
+    "id_13": 32,
+    "id_14": 20,
     "id_15": 4,
     "id_16": 3,
-    "id_17": 104,
-    "id_18": 18,
-    "id_19": 522,
-    "id_20": 394,
-    "id_21": 490,
-    "id_22": 25,
+    "id_17": 42,
+    "id_18": 12,
+    "id_19": 317,
+    "id_20": 147,
+    "id_21": 101,
+    "id_22": 6,
     "id_23": 4,
-    "id_24": 12,
-    "id_25": 341,
-    "id_26": 95,
+    "id_24": 4,
+    "id_25": 90,
+    "id_26": 38,
     "id_27": 3,
     "id_28": 3,
     "id_29": 3,
-    "id_30": 76,
-    "id_31": 131,
-    "id_32": 4,
-    "id_33": 261,
-    "id_34": 5,
+    "id_30": 64,
+    "id_31": 72,
+    "id_32": 3,
+    "id_33": 85,
+    "id_34": 4,
     "id_35": 3,
     "id_36": 3,
     "id_37": 3,
