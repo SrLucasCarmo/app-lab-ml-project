@@ -227,10 +227,6 @@ As opções tecnológicas visam garantir controle, performance e facilidade de m
 Ambiente Docker
  - Docker
  - Git
-Ambiente local
- - python (Atenção: Para execução dos notebooks , necessita versão python 3.11)
- - Git
-
 
 ### 1. Clonar o Repositório
 ```bash
