@@ -63,14 +63,17 @@ class MinioImport():
 
         try:
             resposta = client.get_object(self.bucket, self.arquivo_minio)
-            iterador_csv = pd.read_csv(resposta, chunksize=LIMITATION["chunk_size"])        
-            lista_de_lotes = []    
-            contador = 0 
-            for chunk in iterador_csv:
-                if(contador <= LIMITATION["chunk_count"]):
-                    lista_de_lotes.append(chunk)
-                    contador += 1
-            df_final = pd.concat(lista_de_lotes, ignore_index=True)
+            if LIMITATION["activate"]:
+                iterador_csv = pd.read_csv(resposta, chunksize=LIMITATION["chunk_size"])        
+                lista_de_lotes = []    
+                contador = 0 
+                for chunk in iterador_csv:
+                    if(contador <= LIMITATION["chunk_count"]):
+                        lista_de_lotes.append(chunk)
+                        contador += 1
+                df_final = pd.concat(lista_de_lotes, ignore_index=True)
+            else:
+                df_final = pd.read_csv(resposta, ignore_index=True) 
             return df_final
         except Exception as erro:
             print(f"Ocorreu um erro durante o processamento: {erro}")

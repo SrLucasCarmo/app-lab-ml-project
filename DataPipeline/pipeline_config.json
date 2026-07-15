@@ -45,6 +45,7 @@
     "predict": ["predict","/ieee-fraud-detection/"]
   },
   "limitation": {
+    "activate": true,
     "chunk_size": 500,
     "chunk_count": 3
   },

@@ -57,31 +57,40 @@ LIMITATION = CFG["limitation"]
 
 def chunk_control(caminho_arquivo) -> pd.DataFrame:
     """Le arquivo CSV aplicando chunk size configurado e retorna Dataframe"""
-    iterador_csv = pd.read_csv(caminho_arquivo, chunksize=LIMITATION["chunk_size"])        
-    lista_de_lotes = []    
-    contador = 0 
-    for chunk in iterador_csv:
-        if(contador <= LIMITATION["chunk_count"]):
-            lista_de_lotes.append(chunk)
-            contador += 1
-    df_final = pd.concat(lista_de_lotes, ignore_index=True)
+    if LIMITATION["activate"]:
+        iterador_csv = pd.read_csv(caminho_arquivo, chunksize=LIMITATION["chunk_size"])        
+        lista_de_lotes = []    
+        contador = 0 
+        for chunk in iterador_csv:
+            if(contador <= LIMITATION["chunk_count"]):
+                lista_de_lotes.append(chunk)
+                contador += 1
+        df_final = pd.concat(lista_de_lotes, ignore_index=True)
+    else:
+        df_final = pd.read_csv(caminho_arquivo, ignore_index=True)
     return df_final
 
 def load_and_merge() -> pd.DataFrame:
     """Carrega identidade inteira e transações em lotes, filtrando antecipadamente."""
+    if LIMITATION["activate"]:
+        msg_identidade = f"Carregando identidade em lotes (chunksize) - {FILES[1]}"
+        msg_transacoes = f"Carregando transações em lotes (chunksize) - {FILES[1]}"
+    else:
+        msg_identidade = f"Carregando identidade - {FILES[1]}"
+        msg_transacoes = f"Carregando transações - {FILES[1]}"
+
     if AMBIENTE_ATUAL == 'docker':
-        # 1. Carrega a tabela MENOR (Identidade) inteira para a memória
-        logger.info("Carregando identidade em lotes (chunksize): %s", FILES[1])
+        logger.info(msg_identidade)
         minio_ident = MinioImport(BUCKET["raw"][0], '', os.path.join(BUCKET["raw"][1], FILES[1]), '')
         df_ident = minio_ident.ler_csv_minio()
 
-        logger.info("Carregando transações em lotes (chunksize): %s", FILES[0])
+        logger.info(msg_transacoes)
         minio_trans = MinioImport(BUCKET["raw"][0], '', os.path.join(BUCKET["raw"][1], FILES[0]), '')
         df_trans_iter = minio_trans.ler_csv_minio() 
     else:
-        logger.info("Carregando identidade em lotes (chunksize): %s", FILES[1])
+        logger.info(msg_identidade)
         df_ident = chunk_control(os.path.join(PATHS["raw"], FILES[1]))
-        logger.info("Carregando transações em lotes (chunksize): %s", FILES[0])
+        logger.info(msg_transacoes)
         df_trans_iter = chunk_control(os.path.join(PATHS["raw"], FILES[0]))
     
     df = df_trans_iter.merge(df_ident, on=META["id_column"], how="left")

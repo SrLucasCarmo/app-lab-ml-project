@@ -110,23 +110,23 @@ Este documento apresenta a estrutura de diretórios e arquivos obrigatória para
 │   └── pipeline_config.json       # Arquivo de configuração (variáveis, parâmetros e metadados)
 ├── MLOps/
 │   ├── dags
-|   |   ├── model_fraud_data_pipeline.py
-|   |   ├── raw_fraud_data_pipeline.py
-|   |   ├── refined_fraud_data_pipeline.py
-|   |   ├── trusted_fraud_data_pipeline.py
+|   |   ├── 1_raw_fraud_data_pipeline.py
+|   |   ├── 2_trusted_fraud_data_pipeline.py
+|   |   ├── 3_refined_fraud_data_pipeline.py
+|   |   ├── 4_model_fraud_data_pipeline.py
 │   ├── plugins
-│   ├── dcoker-compose.yml         
+│   ├── docker-compose.yml         
 │   └── Dockerfile.airflow
 ├── Model/
-│   └── evaluation.ipynb
-│   └── generate_scaler.py
+│   ├── evaluation.ipynb
+│   ├── generate_scaler.py
 │   ├── model_config.json          # Arquivo de configuração (hiperparâmetros e metadados)
-│   └── predict.py
-│   └── scaler_features.json       # Arquivo de report (formato da tabela final para pre processamento)
+│   ├── predict.py
+│   ├── scaler_features.json       # Arquivo de report (formato da tabela final para pre processamento)
 │   ├── train.py
-│   ├── training_metrics.json      # Arquivo de report (resultado de treinamento)
+│   └── training_metrics.json      # Arquivo de report (resultado de treinamento)
 ├── straming_pipeline/             # Ainda em desenvolvimento
-│   └── Dockerfile
+│   ├── Dockerfile
 │   └── requirements.txt
 ├── README.md                      # Documentação principal do projeto
 ├── requirements.txt
@@ -158,10 +158,11 @@ Contém os códigos responsáveis pela engenharia, tratamento e exploração dos
 
 ### 4. `/Mlops`
 Contém os códigos de execução do ambiente no Docker (docker-compose) e configuração de dags do Airflow.
-* **`dags/model_fraud_data_pipeline.py`**: Dag Responsavel por criação do pkl do modelo e pre processador. (A dag não está sincronizada com o fluxo geral dos dados, dependendo assim da execução em ordem especifica, será implantado sensores para respeitar as dependencias)
-* **`dags/raw_fraud_data_pipeline.py`**: Dag Responsavel pelo acesso , download e disponibilização dos dados raw no Minio. (A dag não está sincronizada com o fluxo geral dos dados, dependendo assim da execução em ordem especifica, será implantado sensores para respeitar as dependencias)
-* **`dags/refined_fraud_data_pipeline.py`**: Dag Responsavel pela execução do modelo ABT e disponibilização dos dados no minio. (A dag não está sincronizada com o fluxo geral dos dados, dependendo assim da execução em ordem especifica, será implantado sensores para respeitar as dependencias)
-* **`dags/trusted_fraud_data_pipeline.py`**: Dag Responsavel pela camada de limpeza dos dados e disponibilização dos dados no minio. (A dag não está sincronizada com o fluxo geral dos dados, dependendo assim da execução em ordem especifica, será implantado sensores para respeitar as dependencias)
+* **`dags/1_raw_fraud_data_pipeline.py`**: Dag Responsavel pelo acesso , download e disponibilização dos dados raw no Minio. (A dag possui Sensor no airflow , respeitando as dependencias)
+* **`dags/2_trusted_fraud_data_pipeline.py`**: Dag Responsavel pela camada de limpeza dos dados e disponibilização dos dados no minio. (A dag possui Sensor no airflow , respeitando as dependencias)
+* **`dags/3_refined_fraud_data_pipeline.py`**: Dag Responsavel pela execução do modelo ABT e disponibilização dos dados no minio. (A dag possui Sensor no airflow , respeitando as dependencias)
+* **`dags/4_model_fraud_data_pipeline.py`**: Dag Responsavel por criação do pkl do modelo e pre processador e geração da base de predict. (A dag possui Sensor no airflow , respeitando as dependencias)
+
 * **`docker-compose.yml`**: Arquivo para subida do ambiente no Docker.
 * **`Dockerfile.airflow`**: Docker File do ambiente airflow.
 
@@ -184,12 +185,52 @@ Concentra arquivos de subida do ambiente Streamlit e requisitos de bibliotecas n
 * **`requirements.txt`**: Listagem com todas as bibliotecas necessarias para execução dos notebooks do projeto.
 * **`Readme.md`**: Guia principal de leitura e apresentação do projeto.
 
+## 📝 Arquitetura da Solução
+
+![alt text](arquitetura.png)
+
+O fluxo desenvolve-se através de 4 camadas principais, onde a qualidade da informação é progressivamente refinada:
+
+### 📥 1. Ingestão (Camada Raw)
+* **O Processo:** O fluxo inicia com scripts em **Python**, orquestrados de forma automatizada pelo **Apache Airflow**, que fazem a extração direta dos dados através da API do **Kaggle**.
+* **Armazenamento:** Os ficheiros originais são armazenados no **MinIO** na camada **RAW**, guardados no formato **CSV**.
+* **O Racional:** O foco aqui é ter uma réplica exata e crua da fonte. O formato CSV facilita a validação visual inicial e garante que temos um ponto de restauro caso seja necessário reprocessar o histórico.
+
+### ⚙️ 2. Processamento (Camadas Trusted, Refined e Predict)
+* **O Processo:** O fluxo continua no **Apache Airflow**, novos processos em **Python** recolhem os dados brutos e aplicam as devidas transformações, limpezas e agregações.
+* **Armazenamento Multi-Camada:**
+  * **TRUSTED:** Dados limpos, tipados e sem inconsistências. Guardados no MinIO em formato **Parquet**.
+  * **REFINED:** Dados enriquecidos com regras de negócio, prontos para consumo analítico. Também em formato **Parquet**.
+  * **PREDICT:** Uma camada dedicada a armazenar os resultados e as *features* geradas pelos modelos preditivos, em **Parquet**.
+* **O Racional:** A escolha do formato Parquet nestas etapas otimiza drasticamente o armazenamento (compressão colunar) e a velocidade de leitura para o modelo e para a aplicação.
+
+### 🤖 3. Modelação (Model)
+* **O Processo:** Um modelo de Machine Learning consome os dados altamente refinados para treinar e gerar inferências. Esta componente é o "cérebro" da operação, transformando dados processados em inteligência acionável.
+
+### 🖥️ 4. Consumo (Streamlit App)
+* **A Aplicação:** O ponto de contacto final com o utilizador é uma interface web interativa desenvolvida inteiramente em **Streamlit**.
+* **O Racional:** O Streamlit permite construir painéis dinâmicos e intuitivos de forma ágil com Python, ligando-se perfeitamente aos resultados gerados pelo modelo mesmo sendo apenas uma demontrasção, entregando a informação de forma visual.
+
+## 🛠️ Stack Tecnológica
+
+As opções tecnológicas visam garantir controle, performance e facilidade de manutenção:
+
+* 📊 **Kaggle API:** A fonte primária de dados, permitindo acesso programático a *datasets* ricos.
+* 🐍 **Python:** A linguagem central que une todo o projeto, utilizada desde a ingestão à modelação e criação da interface web.
+* ⏳ **Apache Airflow:** O orquestrador oficial do fluxo, responsável por agendar, monitorizar e gerir as dependências entre a ingestão e o processamento.
+* 🪣 **MinIO:** O nosso Data Lake *on-premise*/escalável. Organiza os dados em quatro zonas distintas: Raw, Trusted, Refined e Predict.
+* 👑 **Streamlit:** A *framework* escolhida para criar o produto final de dados. Transforma <i>scripts</i> complexos numa aplicação web de fácil utilização.
 
 ## ⚙️ Instruções de Como Treinar o Modelo
 
 ### Pré-requisitos
+Ambiente Docker
  - Docker
  - Git
+Ambiente local
+ - python (Atenção: Para execução dos notebooks , necessita versão python 3.11)
+ - Git
+
 
 ### 1. Clonar o Repositório
 ```bash
@@ -199,47 +240,35 @@ git clone <url-do-seu-repositorio>
 Para funcionamento do projeto é necessário configurar variavel de ambiente com as credenciais da API TOKEN do Kaggle (para mais informações de como gerar a API TOKEN basta ir na documentação do Kaggle [Link](https://www.kaggle.com/settings/api))
 Abra o Prompt de Comando (cmd) ou PowerShell na raiz do projeto , execute o comando abaixo.
 ```bash
-echo KAGGLE_API_TOKEN="SUA_API_KEY" > MLOps\.env
+echo KAGGLE_API_TOKEN=SUA_API_KEY > MLOps\.env
 ```
-Obs: Não esqueça de adicionar o arquivo criado no .gitignore do projeto
+### 3. Docker
 
-### 3. Subida do ambiente
+### 3.1 Subida do ambiente no Docker
 Para subir o ambiente , abra o Prompt de Comando (cmd) ou PowerShell na raiz do projeto , execute o comando abaixo.
 ```bash
-docker compose -f MLOps\docker-compose.yml up -d airflow-webserver airflow-scheduler minio postgres
+docker compose -f MLOps\docker-compose.yml up -d 
 ```
-Obs: O projeto ainda está em desenvolvimento então rodaremos apenas os serviços necessario para treinamento do modelo
 
-### 4. Execução do pipeline de dados
-Obs: As bases do Keaggle são massivas e exigem recursos para processamento, como o projeto trata-se de uma demonstração as bases trusted, refined e construção do modelo foram baseados sobre 40 mil registros de transações, caso queira utilizar a base completa basta ignorar if do contator no código (linha 64) `/DataPipelineu/til/import_minio.py`
+### 3.2. Execução do pipeline de dados
+Obs: As bases do Keaggle são massivas e exigem recursos para processamento, como o projeto trata-se de uma demonstração as bases trusted, refined e construção do modelo foram baseados sobre 40 mil registros de transações, caso queira utilizar a base completa basta altera a configuração no arquivo `DataPipeline\pipeline_config.json` ("activate" : false) na propriedade de "limitation"
 
-```python
-try:
-    resposta = client.get_object(self.bucket, self.arquivo_minio)
-    iterador_csv = pd.read_csv(resposta, chunksize=chuck_size)        
-    lista_de_lotes = []    
-    contador = 0 
-    
-    for chunk in iterador_csv: 
-        if contador <= 3:  # <- ignorar linha caso queira utilizar base completa do kaggle
-            lista_de_lotes.append(chunk)
-            contador += 1
-            
-    df_final = pd.concat(lista_de_lotes, ignore_index=True)
-    return df_final
-
-except Exception as erro:
-    print(f"Ocorreu um erro durante o processamento: {erro}")
+```json
+"limitation": {
+    "activate": true,
+    "chunk_size": 500,
+    "chunk_count": 3
+  },
 ```
 
 Acesse o ambiente do airflow local no link `http://localhost:8080/home`
-Por padrão as dags começar pausadas **Importante** como as dags no airflow ainda estão no processo de desenvolvimento, as dependencias podem apresentar falhas.
-Devido a isso ative todas as dags, caso apresente erros de dependencias (ative e aguarde finalizar dag por dag seguindo a ordem abaixo)
+Por padrão as dags começar pausadas
+Devido a isso ative todas as dags, (**importante** As dags possui um sensor de dependencia que funciona muito bem pelo scheduler programado, porém execuções manuais o sensor perde a referencia de execução, sendo necessario marcar as task de sensores como sucesso e seguindo a ordem de execução)
 ```bash
-raw_fraud_data_pipeline > trusted_fraud_data_pipeline > refined_fraud_data_pipeline > model_fraud_data_pipeline
+1_raw_fraud_data_pipeline > 2_trusted_fraud_data_pipeline > 3_refined_fraud_data_pipeline > 4_model_fraud_data_pipeline
 ```
 
  - O modelo treinado e seus respectivos metadados serão salvos conforme configurado em `Model/model_config.json` e os resultados `Model/training_metrics.json`.
  - Os Arquivos `Model/fraud_model.pkl` e `Model/scaler.pkl` serão criados.
- - As predições podem ser realizadas com os arquivos porem o projeto ainda precisa de configuração.
-
+ - As predições serão salvas no Minio
+ - A aplicação streamlit estará disponivel no link (http://localhost:8501/)
